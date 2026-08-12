@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Amazon Clone — Çok Kullanıcılı E-Ticaret
 
-## Getting Started
+Next.js 16 (App Router) + MongoDB + Prisma + Cloudinary + Stripe ile yazılmış,
+yönetim panelli, tam responsive bir e-ticaret uygulaması.
 
-First, run the development server:
+---
+
+## Hızlı başlangıç
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env      # değerleri doldurun
+npm run db:push           # koleksiyon ve indeksleri oluşturur
+npm run db:seed           # örnek veri + demo görselleri
+npm run dev               # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Demo hesaplar (seed sonrası)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Rol      | E-posta            | Şifre      |
+| -------- | ------------------ | ---------- |
+| Yönetici | `admin@amazon.com` | `admin123` |
+| Müşteri  | `ayse@test.com`    | `test1234` |
+| Müşteri  | `mehmet@test.com`  | `test1234` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Kuponlar: `HOSGELDIN10` (%10, min 25 €) · `YAZ25` (%25, min 100 €) · `SUPER5` (%5)
 
-## Learn More
+> Veritabanı boşken kayıt olan **ilk kullanıcı otomatik olarak yönetici** olur.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Komutlar
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Komut              | Açıklama                                          |
+| ------------------ | ------------------------------------------------- |
+| `npm run dev`      | Geliştirme sunucusu                               |
+| `npm run build`    | Prisma client üretir + üretim derlemesi           |
+| `npm run start`    | Üretim sunucusu                                   |
+| `npm run db:push`  | Şemayı MongoDB'ye uygular                         |
+| `npm run db:seed`  | Örnek veri yükler (83 ürün, 7 kategori, banner…)  |
+| `npm run db:reset` | Veritabanını sıfırlar ve yeniden doldurur         |
+| `npm run db:studio`| Prisma Studio                                     |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Özellikler
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Mağaza (müşteri)
+
+- **Ana sayfa** — otomatik geçen hero slider, kategori kartları, fırsat / öne çıkan /
+  çok satan / yeni gelen ürün rayları (yatay kaydırmalı)
+- **Katalog & arama** — metin araması, kategori + alt kategori, marka, fiyat aralığı,
+  müşteri puanı ve indirim filtreleri, 6 sıralama seçeneği, sayfalama
+- **Ürün detayı** — çoklu görsel galerisi, renk/beden varyantları, stok durumu,
+  adet seçimi, "Sepete ekle" / "Hemen al", favoriler, benzer ürünler
+- **Değerlendirmeler** — 1-5 yıldız, puan dağılım grafiği, kullanıcı başına tek yorum
+  (düzenlenebilir), ürün puanı otomatik yeniden hesaplanır
+- **Sepet** — misafirken `localStorage`, giriş yapınca veritabanına taşınır ve birleşir;
+  fiyat/stok her zaman sunucudan doğrulanır
+- **Para birimi** — tüm site ve Stripe ödemeleri **EUR (€)**; 50 € üzeri kargo bedava
+- **Ödeme** — kayıtlı adres seçimi veya yeni adres, kupon uygulama, Stripe Checkout
+  veya kapıda ödeme, sipariş notu
+- **Hesabım** — siparişler (durum çizelgesi, kargo takip no, iptal), adres defteri,
+  profil & şifre değiştirme, favoriler
+
+### Yönetim paneli (`/admin`)
+
+- **Panel** — ciro, sipariş, ürün, kullanıcı, bekleyen sipariş, kritik stok kartları;
+  son 14 günün ciro grafiği; son siparişler tablosu
+- **Ürünler** — arama, sayfalama, tam CRUD; çoklu görsel yükleme (Cloudinary) veya
+  URL yapıştırma, kapak seçimi ve sıralama, renk/beden/etiket editörü, indirim,
+  stok, yayın & öne çıkarma anahtarları
+- **Kategoriler** — kategori ve alt kategori CRUD, görsel, sıralama; ürünü olan
+  kategori silinemez
+- **Siparişler** — duruma göre filtre, detay sayfası, sipariş/ödeme durumu ve kargo
+  takip numarası güncelleme (iptalde stok otomatik iade edilir)
+- **Kullanıcılar** — arama, rol değiştirme (USER/ADMIN), hesap askıya alma, silme
+- **Kuponlar** — kod, yüzde, minimum tutar, kullanım limiti, tarih aralığı, aktiflik
+- **Bannerlar** — ana slayt ve orta şerit bannerları, sıra ve yayın durumu
+
+---
+
+## Mimari
+
+```
+app/
+  (shop)/            mağaza sayfaları (header + footer)
+  (auth)/            giriş / kayıt
+  admin/             yönetim paneli (middleware ile ADMIN korumalı)
+  api/               REST uçları
+components/
+  layout/ product/ catalog/ checkout/ account/ admin/ ui/ providers/
+lib/
+  prisma.ts          tekil PrismaClient
+  auth.ts / jwt.ts   JWT + httpOnly çerez oturumu
+  queries.ts         sunucu bileşenleri için doğrudan DB okumaları
+  cart.ts            sepet doğrulama (fiyat/stok sunucudan)
+  orders.ts          ödeme/stok/iptal iş kuralları
+  coupon.ts          kupon doğrulama
+  cloudinary.ts      görsel yükleme
+  stripe.ts          Stripe istemcisi
+  validators.ts      zod şemaları
+prisma/
+  schema.prisma      MongoDB modelleri
+  seed.ts            örnek veri
+```
+
+**Performans notu:** Sayfalar sunucu bileşeni olarak Prisma'ya *doğrudan* sorgu atar
+(araya HTTP katmanı girmez). Ana sayfa gibi çok sorgulu ekranlarda sorgular
+`Promise.all` ile paralel çalışır, ürün kartları için `select` ile yalnızca gereken
+alanlar çekilir ve `schema.prisma` içinde kategori, fiyat, tarih, durum alanlarına
+indeks tanımlanmıştır. REST uçları (`/api/*`) aynı iş mantığını dış istemcilere açar.
+
+### API uçları
+
+| Uç | Metotlar |
+| --- | --- |
+| `/api/auth/register` `/login` `/logout` `/me` | POST / GET |
+| `/api/products` `/api/products/[id]` | GET · POST/PUT/DELETE (admin) |
+| `/api/categories` `/api/subcategories` (+`/[id]`) | GET · POST/PUT/DELETE (admin) |
+| `/api/cart` | GET · PUT · DELETE |
+| `/api/wishlist` | GET · POST (toggle) · DELETE |
+| `/api/reviews` | GET · POST · DELETE |
+| `/api/addresses` (+`/[id]`) | GET · POST · PUT · DELETE |
+| `/api/checkout` · `/api/checkout/verify` | POST |
+| `/api/orders` `/api/orders/[id]` | GET · PATCH (admin) · DELETE |
+| `/api/coupons` `/api/coupons/validate` | GET/POST/PUT/DELETE · POST |
+| `/api/banners` `/api/users` (+`/[id]`) | admin |
+| `/api/upload` | POST/DELETE (Cloudinary, admin) |
+| `/api/webhooks/stripe` (+ `/api/webhook` takma adı) | POST |
+
+---
+
+## Stripe kurulumu
+
+1. `.env` içine `STRIPE_SECRET_KEY` ve `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` ekleyin.
+2. Webhook'u yerelde dinleyin:
+
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhooks/stripe
+   ```
+
+   Çıktıdaki `whsec_...` değerini `STRIPE_WEBHOOK_SECRET` olarak yazın.
+
+   Canlıda ise Stripe panelinde **Developers → Webhooks → Add endpoint** ile
+   `https://<alan-adiniz>/api/webhooks/stripe` adresini ekleyin ve o endpoint'in
+   kendi `whsec_` değerini kullanın. Her endpoint'in secret'ı farklıdır; başka bir
+   endpoint'in secret'ı imza doğrulamasında 400 döndürür.
+   Gereken olaylar: `checkout.session.completed`, `checkout.session.expired`,
+   `payment_intent.payment_failed`, `charge.refunded`.
+3. Test kartı: `4242 4242 4242 4242`, herhangi bir gelecek tarih ve CVC.
+
+Webhook yapılandırılmasa bile ödeme sonrası dönüş sayfası `/api/checkout/verify`
+ile Stripe oturumunu doğrulayıp siparişi "Ödendi" yapar. Stripe anahtarları hiç
+tanımlı değilse kart seçeneği kapanır, **kapıda ödeme** ile sipariş verilebilir.
+
+## Cloudinary kurulumu
+
+`.env` içine `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+girin. Tanımlı değilse yönetim panelindeki yükleme butonu uyarı verir; görselleri
+doğrudan URL yapıştırarak da ekleyebilirsiniz.
+
+---
+
+## Demo görselleri hakkında
+
+`npm run db:seed` çalışırken ürün fotoğrafları bir kez indirilip `public/seed`
+klasörüne yazılır (bu klasör `.gitignore`'dadır, seed ile yeniden üretilir).
+Böylece site çalışırken dış bir görsel servisine bağımlı olmaz. Kendi ürün
+fotoğraflarınızı yönetim panelinden Cloudinary ile yükleyebilirsiniz.
+
+## Güvenlik notları
+
+- Şifreler `bcrypt` ile hash'lenir, oturum `HS256` imzalı JWT + `httpOnly` çerez.
+- `/admin`, `/account`, `/checkout`, `/wishlist` middleware ile korunur; ayrıca her
+  API ucunda `requireUser` / `requireAdmin` kontrolü yapılır.
+- Sepet ve sipariş tutarları **istemciden alınmaz**, her zaman veritabanındaki güncel
+  fiyat ve stok üzerinden yeniden hesaplanır.
+- Stripe webhook imzası doğrulanır; sipariş ödeme işaretlemesi idempotenttir.
+
+---
+
+Bu proje eğitim amaçlı bir demodur; Amazon.com ile bir ilişkisi yoktur.

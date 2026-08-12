@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
+@theme {
+  /* Amazon renk paleti */
+  --color-amz-dark: #131921;
+  --color-amz-nav: #232f3e;
+  --color-amz-nav-hover: #37475a;
+  --color-amz-light: #eaeded;
+  --color-amz-yellow: #febd69;
+  --color-amz-yellow-dark: #f3a847;
+  --color-amz-orange: #ff9900;
+  --color-amz-link: #007185;
+  --color-amz-link-hover: #c7511f;
+  --color-amz-price: #b12704;
+  --color-amz-star: #ffa41c;
+  --color-amz-border: #d5d9d9;
+  --color-amz-success: #067d62;
+
+  --font-sans: var(--font-geist-sans), "Amazon Ember", Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eaeded;
+  --foreground: #0f1111;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Ölçekli, dokunmatik dostu odak halkası */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-amz-orange);
+  outline-offset: 2px;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Amazon tarzı sarı buton */
+@utility btn-amz {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #fcd200;
+  background-image: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+  color: #0f1111;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  transition: filter 0.15s ease;
+  cursor: pointer;
+  &:hover {
+    filter: brightness(0.96);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-amz-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-amz-border);
+  background: #fff;
+  color: #0f1111;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  transition: background 0.15s ease;
+  cursor: pointer;
+  &:hover {
+    background: #f7fafa;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@utility input-amz {
+  width: 100%;
+  border-radius: 0.25rem;
+  border: 1px solid #888c8c;
+  background: #fff;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  color: #0f1111;
+  box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15) inset;
+  &:focus {
+    border-color: var(--color-amz-orange);
+    box-shadow: 0 0 3px 2px rgba(228, 121, 17, 0.5);
+    outline: none;
+  }
+  &::placeholder {
+    color: #767676;
+  }
+}
+
+@utility card-amz {
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-amz-border);
+  background: #fff;
+}
+
+/* Yatay kaydırmalı ürün rayları için momentum */
+.snap-row {
+  scroll-snap-type: x mandatory;
+}
+.snap-row > * {
+  scroll-snap-align: start;
+}
+
+@keyframes amz-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: amz-fade-in 0.2s ease-out;
 }

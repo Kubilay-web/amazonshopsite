@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# örnek veri görselleri (npm run db:seed ile yeniden üretilir)
+/public/seed
