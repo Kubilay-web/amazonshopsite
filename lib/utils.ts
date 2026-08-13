@@ -86,9 +86,27 @@ export const FREE_SHIPPING_LIMIT = 50;
 export const SHIPPING_COST = 4.99;
 export const TAX_RATE = 0; // KDV fiyatlara dahil
 
-export function calcShipping(itemsPrice: number) {
+/**
+ * Kargo ücreti. `config` verilmezse yukarıdaki varsayılanlar kullanılır;
+ * yönetim panelindeki ayarlar bu değerleri istemciye prop olarak taşır.
+ */
+export function calcShipping(
+  itemsPrice: number,
+  config?: { freeShippingLimit?: number; shippingCost?: number },
+) {
   if (itemsPrice <= 0) return 0;
-  return itemsPrice >= FREE_SHIPPING_LIMIT ? 0 : SHIPPING_COST;
+  const limit = config?.freeShippingLimit ?? FREE_SHIPPING_LIMIT;
+  const cost = config?.shippingCost ?? SHIPPING_COST;
+  return itemsPrice >= limit ? 0 : cost;
+}
+
+/**
+ * KDV tutarı. Oran 0 ise (varsayılan) fiyatlara dahil kabul edilir ve
+ * siparişe ayrı satır eklenmez.
+ */
+export function calcTax(amount: number, taxRate = TAX_RATE) {
+  if (amount <= 0 || !taxRate) return 0;
+  return round2((amount * taxRate) / 100);
 }
 
 export function truncate(text: string, length = 90) {
@@ -124,6 +142,37 @@ export const PAYMENT_STATUS_COLORS: Record<string, string> = {
   PAID: "bg-emerald-100 text-emerald-800 border-emerald-200",
   REFUNDED: "bg-orange-100 text-orange-800 border-orange-200",
   FAILED: "bg-rose-100 text-rose-800 border-rose-200",
+};
+
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  CREATE: "Oluşturma",
+  UPDATE: "Güncelleme",
+  DELETE: "Silme",
+  BULK: "Toplu işlem",
+  LOGIN: "Giriş",
+  SETTINGS: "Ayar",
+};
+
+export const AUDIT_ACTION_COLORS: Record<string, string> = {
+  CREATE: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  UPDATE: "bg-blue-100 text-blue-800 border-blue-200",
+  DELETE: "bg-rose-100 text-rose-800 border-rose-200",
+  BULK: "bg-violet-100 text-violet-800 border-violet-200",
+  LOGIN: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  SETTINGS: "bg-amber-100 text-amber-800 border-amber-200",
+};
+
+export const AUDIT_ENTITY_LABELS: Record<string, string> = {
+  product: "Ürün",
+  category: "Kategori",
+  subcategory: "Alt kategori",
+  order: "Sipariş",
+  user: "Kullanıcı",
+  review: "Yorum",
+  coupon: "Kupon",
+  banner: "Banner",
+  setting: "Ayarlar",
+  inventory: "Stok",
 };
 
 export function isValidObjectId(id: string) {

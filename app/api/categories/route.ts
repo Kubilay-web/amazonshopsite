@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { categorySchema } from "@/lib/validators";
 import { getCategories } from "@/lib/queries";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const data = categorySchema.parse(await request.json());
     const slug = data.slug ? slugify(data.slug) : slugify(data.name);
 
@@ -28,6 +29,14 @@ export async function POST(request: NextRequest) {
     const category = await prisma.category.create({
       data: { name: data.name, slug, image: data.image || null, order: data.order },
     });
+    await logAudit({
+      user: admin,
+      action: "CREATE",
+      entity: "category",
+      entityId: category.id,
+      summary: `Kategori eklendi: ${category.name}`,
+    });
+
     return ok({ category }, { status: 201 });
   } catch (error) {
     return handleError(error);

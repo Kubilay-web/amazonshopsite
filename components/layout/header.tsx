@@ -2,17 +2,29 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { MapPin } from "lucide-react";
 import { getCategories } from "@/lib/queries";
+import { getSettings } from "@/lib/settings";
 import { SearchBar } from "@/components/layout/search-bar";
 import { CartButton } from "@/components/layout/cart-button";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 
 export async function Header() {
-  const categories = await getCategories();
+  const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
   const flat = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
+  const showAnnouncement = settings.announcementActive && settings.announcement.trim().length > 0;
 
   return (
     <header className="sticky top-0 z-50">
+      {/* Duyuru şeridi — yönetim panelindeki Ayarlar ekranından yönetilir */}
+      {showAnnouncement && (
+        <Link
+          href={settings.announcementLink || "/"}
+          className="block bg-amz-orange px-3 py-1.5 text-center text-sm font-medium text-zinc-900 hover:brightness-97"
+        >
+          {settings.announcement}
+        </Link>
+      )}
+
       {/* Üst şerit */}
       <div className="bg-amz-dark text-white">
         <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-2 py-2 sm:gap-3 sm:px-4">
@@ -20,7 +32,9 @@ export async function Header() {
             href="/"
             className="flex shrink-0 items-end rounded-sm border border-transparent px-1.5 py-1 hover:border-white"
           >
-            <span className="text-xl font-bold tracking-tight sm:text-2xl">amazon</span>
+            <span className="text-xl font-bold tracking-tight sm:text-2xl">
+              {settings.siteName}
+            </span>
             <span className="mb-1 ml-0.5 h-1.5 w-4 rounded-full bg-amz-orange" />
           </Link>
 

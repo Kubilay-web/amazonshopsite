@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { bannerSchema } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
 import { handleError, ok } from "@/lib/api";
 
 export async function GET() {
@@ -17,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const data = bannerSchema.parse(await request.json());
     const banner = await prisma.banner.create({
       data: {
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest) {
         active: data.active,
       },
     });
+    await logAudit({
+      user: admin,
+      action: "CREATE",
+      entity: "banner",
+      entityId: banner.id,
+      summary: `Banner eklendi: ${banner.title}`,
+    });
+
     return ok({ banner }, { status: 201 });
   } catch (error) {
     return handleError(error);

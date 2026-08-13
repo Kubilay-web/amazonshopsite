@@ -8,17 +8,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FullSpinner } from "@/components/ui/spinner";
 import { useCart } from "@/components/providers/cart-provider";
 import { useAuth } from "@/components/providers/auth-provider";
-import {
-  FREE_SHIPPING_LIMIT,
-  calcShipping,
-  finalPrice,
-  formatPrice,
-  round2,
-} from "@/lib/utils";
+import { useShopConfig } from "@/components/providers/shop-config-provider";
+import { calcShipping, calcTax, finalPrice, formatPrice, round2 } from "@/lib/utils";
 
 export default function CartPage() {
   const { items, ready, count, subtotal, updateQty, remove, clear, lineKey } = useCart();
   const user = useAuth();
+  const config = useShopConfig();
   const router = useRouter();
 
   if (!ready) return <FullSpinner label="Sepetiniz yükleniyor…" />;
@@ -37,9 +33,11 @@ export default function CartPage() {
     );
   }
 
-  const shipping = calcShipping(subtotal);
-  const total = round2(subtotal + shipping);
-  const remaining = round2(Math.max(0, FREE_SHIPPING_LIMIT - subtotal));
+  const shipping = calcShipping(subtotal, config);
+  const tax = calcTax(subtotal, config.taxRate);
+  const total = round2(subtotal + shipping + tax);
+  const remaining = round2(Math.max(0, config.freeShippingLimit - subtotal));
+  const belowMinimum = config.minOrderAmount > 0 && subtotal < config.minOrderAmount;
 
   function goCheckout() {
     router.push(user ? "/checkout" : "/login?redirect=/checkout");
@@ -176,13 +174,32 @@ export default function CartPage() {
                   )}
                 </dd>
               </div>
+              {tax > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-zinc-600">KDV (%{config.taxRate})</dt>
+                  <dd className="font-medium">{formatPrice(tax)}</dd>
+                </div>
+              )}
               <div className="flex justify-between border-t border-amz-border pt-2 text-lg">
                 <dt className="font-bold">Toplam</dt>
                 <dd className="font-bold text-amz-price">{formatPrice(total)}</dd>
               </div>
             </dl>
 
-            <button type="button" onClick={goCheckout} className="btn-amz w-full">
+            {belowMinimum && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Minimum sipariş tutarı {formatPrice(config.minOrderAmount)}. Sepetinize{" "}
+                <strong>{formatPrice(round2(config.minOrderAmount - subtotal))}</strong> daha
+                ekleyin.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={goCheckout}
+              disabled={belowMinimum}
+              className="btn-amz w-full"
+            >
               Alışverişi tamamla
             </button>
 

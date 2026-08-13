@@ -2,24 +2,9 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { reviewSchema } from "@/lib/validators";
+import { refreshProductRating } from "@/lib/reviews";
+import { getSettings } from "@/lib/settings";
 import { fail, handleError, ok } from "@/lib/api";
-import { round2 } from "@/lib/utils";
-
-/** Ürünün ortalama puanını ve yorum sayısını yeniden hesaplar. */
-async function refreshProductRating(productId: string) {
-  const agg = await prisma.review.aggregate({
-    where: { productId },
-    _avg: { rating: true },
-    _count: { _all: true },
-  });
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      rating: round2(agg._avg.rating ?? 0),
-      numReviews: agg._count._all,
-    },
-  });
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,6 +25,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireUser();
+    const settings = await getSettings();
+    if (!settings.reviewsEnabled) {
+      return fail("Yorumlar şu anda kapalı", 403);
+    }
     const data = reviewSchema.parse(await request.json());
 
     const product = await prisma.product.findUnique({

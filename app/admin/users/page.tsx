@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { Suspense } from "react";
+import { Download } from "lucide-react";
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
@@ -54,9 +56,14 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Kullanıcılar</h1>
-        <p className="text-sm text-zinc-600">{total} kullanıcı</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">Kullanıcılar</h1>
+          <p className="text-sm text-zinc-600">{total} kullanıcı</p>
+        </div>
+        <a href="/api/admin/export?type=users" className="btn-amz-outline">
+          <Download className="size-4" /> CSV indir
+        </a>
       </div>
 
       <Suspense fallback={null}>
@@ -91,7 +98,12 @@ export default async function AdminUsersPage({
                       {user.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <p className="font-medium text-zinc-900">{user.name}</p>
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="font-medium text-zinc-900 hover:text-amz-link"
+                      >
+                        {user.name}
+                      </Link>
                       <p className="truncate text-xs text-zinc-500">{user.email}</p>
                     </div>
                   </div>
@@ -119,6 +131,12 @@ export default async function AdminUsersPage({
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center justify-end gap-3">
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="text-xs text-amz-link hover:text-amz-link-hover"
+                    >
+                      Detay
+                    </Link>
                     <UserActions
                       userId={user.id}
                       role={user.role}

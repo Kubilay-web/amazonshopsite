@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUp } from "lucide-react";
+import { getSettings } from "@/lib/settings";
 
 const columns = [
   {
@@ -40,7 +41,15 @@ const columns = [
   },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const settings = await getSettings();
+  const socials = [
+    { label: "Facebook", href: settings.facebook },
+    { label: "Instagram", href: settings.instagram },
+    { label: "X", href: settings.twitter },
+    { label: "YouTube", href: settings.youtube },
+  ].filter((s) => s.href.trim().length > 0);
+
   return (
     <footer className="mt-10">
       <a
@@ -76,12 +85,37 @@ export function Footer() {
 
       <div className="bg-amz-dark py-6 text-center text-xs text-zinc-400">
         <Link href="/" className="mb-2 inline-flex items-end">
-          <span className="text-lg font-bold text-white">amazon</span>
+          <span className="text-lg font-bold text-white">{settings.siteName}</span>
           <span className="mb-1 ml-0.5 h-1 w-3 rounded-full bg-amz-orange" />
         </Link>
+
+        {socials.length > 0 && (
+          <div className="mb-2 flex justify-center gap-4">
+            {socials.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-300 hover:text-white hover:underline"
+              >
+                {social.label}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {(settings.supportEmail || settings.supportPhone || settings.contactAddress) && (
+          <p className="mb-2">
+            {[settings.supportEmail, settings.supportPhone, settings.contactAddress]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
+
         <p>
-          © {new Date().getFullYear()} Amazon Clone — Eğitim amaçlı demo projedir. Gerçek
-          Amazon.com ile ilişkisi yoktur.
+          © {new Date().getFullYear()} {settings.siteName} — Eğitim amaçlı demo projedir.
+          Gerçek Amazon.com ile ilişkisi yoktur.
         </p>
       </div>
     </footer>

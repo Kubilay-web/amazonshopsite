@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { productSchema } from "@/lib/validators";
 import { searchProducts } from "@/lib/queries";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await request.json();
     const data = productSchema.parse(body);
 
@@ -66,6 +67,14 @@ export async function POST(request: NextRequest) {
         categoryId: data.categoryId,
         subCategoryId: data.subCategoryId ? data.subCategoryId : null,
       },
+    });
+
+    await logAudit({
+      user: admin,
+      action: "CREATE",
+      entity: "product",
+      entityId: product.id,
+      summary: `Ürün eklendi: ${product.title}`,
     });
 
     return ok({ product }, { status: 201 });

@@ -6,8 +6,9 @@ import { hydrateCart, cartSubtotal } from "@/lib/cart";
 import { validateCoupon } from "@/lib/coupon";
 import { getStripe, stripeConfigured, appUrl } from "@/lib/stripe";
 import { applyStockChanges } from "@/lib/orders";
+import { getSettings, shippingFor, taxFor } from "@/lib/settings";
 import { fail, handleError, ok } from "@/lib/api";
-import { calcShipping, finalPrice, generateOrderNumber, round2 } from "@/lib/utils";
+import { finalPrice, formatPrice, generateOrderNumber, round2 } from "@/lib/utils";
 
 /**
  * Sipariş oluşturur. Fiyatlar ve stok her zaman veritabanından okunur;
@@ -17,6 +18,15 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireUser();
     const data = checkoutSchema.parse(await request.json());
+    const settings = await getSettings();
+
+    // 0) Yönetim panelinden kapatılmış ödeme yöntemleri reddedilir
+    if (data.paymentMethod === "cod" && !settings.codEnabled) {
+      return fail("Kapıda ödeme şu anda kapalı", 403);
+    }
+    if (data.paymentMethod === "stripe" && !settings.stripeEnabled) {
+      return fail("Kart ile ödeme şu anda kapalı", 403);
+    }
 
     // 1) Teslimat adresi
     let shipping = data.shippingAddress ?? null;
@@ -51,9 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3) Tutarlar
+    // 3) Tutarlar — kargo ve eşikler site ayarlarından okunur
     const itemsPrice = cartSubtotal(items);
-    const shippingPrice = calcShipping(itemsPrice);
+    if (settings.minOrderAmount > 0 && itemsPrice < settings.minOrderAmount) {
+      return fail(`Minimum sipariş tutarı ${formatPrice(settings.minOrderAmount)}`, 400);
+    }
+    const shippingPrice = shippingFor(settings, itemsPrice);
 
     let discount = 0;
     let couponCode: string | null = null;
@@ -64,7 +77,10 @@ export async function POST(request: NextRequest) {
       couponCode = result.code;
     }
 
-    const totalPrice = round2(Math.max(0, itemsPrice - discount) + shippingPrice);
+    // KDV, indirim düşüldükten sonraki tutar üzerinden hesaplanır (oran 0 ise fiyata dahil)
+    const taxable = round2(Math.max(0, itemsPrice - discount));
+    const taxPrice = taxFor(settings, taxable);
+    const totalPrice = round2(taxable + shippingPrice + taxPrice);
 
     // 4) Sipariş kaydı
     const order = await prisma.order.create({
@@ -94,6 +110,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: data.paymentMethod,
         itemsPrice,
         shippingPrice,
+        taxPrice,
         discount,
         totalPrice,
         couponCode,
@@ -147,6 +164,17 @@ export async function POST(request: NextRequest) {
           currency: "eur",
           unit_amount: Math.round(shippingPrice * 100),
           product_data: { name: "Kargo Ücreti", images: undefined },
+        },
+      });
+    }
+
+    if (taxPrice > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: "eur",
+          unit_amount: Math.round(taxPrice * 100),
+          product_data: { name: `KDV (%${settings.taxRate})`, images: undefined },
         },
       });
     }

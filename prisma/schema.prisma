@@ -291,3 +291,66 @@ model Banner {
 
   @@map("banners")
 }
+
+/// Mağazanın tek satırlık yapılandırması (key = "site").
+/// Yönetim panelindeki "Ayarlar" ekranı bu kaydı düzenler.
+model Setting {
+  id  String @id @default(auto()) @map("_id") @db.ObjectId
+  key String @unique @default("site")
+
+  // Kimlik
+  siteName        String @default("amazon")
+  siteDescription String @default("Milyonlarca üründe uygun fiyat ve hızlı teslimat.")
+  supportEmail    String @default("")
+  supportPhone    String @default("")
+  contactAddress  String @default("")
+
+  // Duyuru şeridi
+  announcement       String  @default("")
+  announcementLink   String  @default("/")
+  announcementActive Boolean @default(false)
+
+  // Ticaret kuralları
+  freeShippingLimit Float @default(50)
+  shippingCost      Float @default(4.99)
+  taxRate           Float @default(0)
+  minOrderAmount    Float @default(0)
+  lowStockThreshold Int   @default(5)
+
+  // Anahtarlar
+  codEnabled       Boolean @default(true)
+  stripeEnabled    Boolean @default(true)
+  reviewsEnabled   Boolean @default(true)
+  registrationOpen Boolean @default(true)
+
+  // Bakım modu
+  maintenanceMode    Boolean @default(false)
+  maintenanceMessage String  @default("Mağazamız kısa bir bakım çalışması nedeniyle geçici olarak kapalı.")
+
+  // Sosyal medya
+  facebook  String @default("")
+  instagram String @default("")
+  twitter   String @default("")
+  youtube   String @default("")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+/// Yönetici işlemlerinin izlenebilir kaydı.
+model AuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  userName  String   @default("")
+  userEmail String   @default("")
+  action    String // CREATE | UPDATE | DELETE | BULK | LOGIN
+  entity    String // product | order | user | setting …
+  entityId  String?
+  summary   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity])
+  @@map("auditlogs")
+}

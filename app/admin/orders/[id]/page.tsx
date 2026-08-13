@@ -87,6 +87,12 @@ export default async function AdminOrderDetailPage({
                   <dd>−{formatPrice(order.discount)}</dd>
                 </div>
               )}
+              {order.taxPrice > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-zinc-600">KDV</dt>
+                  <dd>{formatPrice(order.taxPrice)}</dd>
+                </div>
+              )}
               <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-base font-bold">
                 <dt>Toplam</dt>
                 <dd>{formatPrice(order.totalPrice)}</dd>

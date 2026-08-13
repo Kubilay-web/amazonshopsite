@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { couponSchema } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const data = couponSchema.parse(await request.json());
 
     const exists = await prisma.coupon.findUnique({ where: { code: data.code } });
@@ -33,6 +34,14 @@ export async function POST(request: NextRequest) {
         active: data.active,
       },
     });
+    await logAudit({
+      user: admin,
+      action: "CREATE",
+      entity: "coupon",
+      entityId: coupon.id,
+      summary: `Kupon oluşturuldu: ${coupon.code} (%${coupon.discountPercent})`,
+    });
+
     return ok({ coupon }, { status: 201 });
   } catch (error) {
     return handleError(error);

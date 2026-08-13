@@ -138,6 +138,76 @@ export const orderStatusSchema = z.object({
   trackingNumber: z.string().trim().optional().or(z.literal("")),
 });
 
+const optionalText = z.string().trim().max(300).optional().or(z.literal(""));
+
+export const settingsSchema = z.object({
+  siteName: z.string().trim().min(1, "Site adı gerekli").max(60),
+  siteDescription: z.string().trim().max(300).optional().or(z.literal("")),
+  supportEmail: optionalText,
+  supportPhone: optionalText,
+  contactAddress: z.string().trim().max(500).optional().or(z.literal("")),
+
+  announcement: z.string().trim().max(200).optional().or(z.literal("")),
+  announcementLink: optionalText,
+  announcementActive: z.boolean().default(false),
+
+  freeShippingLimit: z.coerce.number().min(0).max(100000),
+  shippingCost: z.coerce.number().min(0).max(10000),
+  taxRate: z.coerce.number().min(0).max(100),
+  minOrderAmount: z.coerce.number().min(0).max(100000),
+  lowStockThreshold: z.coerce.number().int().min(0).max(1000),
+
+  codEnabled: z.boolean().default(true),
+  stripeEnabled: z.boolean().default(true),
+  reviewsEnabled: z.boolean().default(true),
+  registrationOpen: z.boolean().default(true),
+
+  maintenanceMode: z.boolean().default(false),
+  maintenanceMessage: z.string().trim().max(300).optional().or(z.literal("")),
+
+  facebook: optionalText,
+  instagram: optionalText,
+  twitter: optionalText,
+  youtube: optionalText,
+});
+
+export const productBulkSchema = z.object({
+  ids: z.array(z.string().length(24)).min(1, "En az bir ürün seçin").max(500),
+  action: z.enum([
+    "activate",
+    "deactivate",
+    "feature",
+    "unfeature",
+    "discount",
+    "stock",
+    "category",
+    "delete",
+  ]),
+  discountPercent: z.coerce.number().int().min(0).max(95).optional(),
+  stock: z.coerce.number().int().min(0).max(1000000).optional(),
+  categoryId: z.string().length(24).optional(),
+});
+
+export const inventoryUpdateSchema = z.object({
+  updates: z
+    .array(
+      z.object({
+        id: z.string().length(24),
+        stock: z.coerce.number().int().min(0).max(1000000).optional(),
+        price: z.coerce.number().min(0.01).max(1000000).optional(),
+        discountPercent: z.coerce.number().int().min(0).max(95).optional(),
+      }),
+    )
+    .min(1, "Değişiklik yok")
+    .max(200),
+});
+
+export const orderBulkSchema = z.object({
+  ids: z.array(z.string().length(24)).min(1, "En az bir sipariş seçin").max(200),
+  status: z.enum(["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]).optional(),
+  paymentStatus: z.enum(["UNPAID", "PAID", "REFUNDED", "FAILED"]).optional(),
+});
+
 /** Zod hatalarını { alan: mesaj } sözlüğüne çevirir. */
 export function zodErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};

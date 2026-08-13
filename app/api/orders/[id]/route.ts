@@ -3,8 +3,9 @@ import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { orderStatusSchema } from "@/lib/validators";
 import { restoreStock } from "@/lib/orders";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
-import { isValidObjectId } from "@/lib/utils";
+import { isValidObjectId, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/utils";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -65,6 +66,20 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       },
     });
 
+    const changes = [
+      data.status ? `durum → ${ORDER_STATUS_LABELS[data.status]}` : null,
+      data.paymentStatus ? `ödeme → ${PAYMENT_STATUS_LABELS[data.paymentStatus]}` : null,
+      data.trackingNumber ? `takip no → ${data.trackingNumber}` : null,
+    ].filter(Boolean);
+
+    await logAudit({
+      user,
+      action: "UPDATE",
+      entity: "order",
+      entityId: id,
+      summary: `${order.orderNumber}: ${changes.join(", ") || "güncellendi"}`,
+    });
+
     return ok({ order });
   } catch (error) {
     return handleError(error);
@@ -90,6 +105,15 @@ export async function DELETE(_request: NextRequest, { params }: Ctx) {
       where: { id },
       data: { status: "CANCELLED" },
     });
+
+    await logAudit({
+      user,
+      action: "UPDATE",
+      entity: "order",
+      entityId: id,
+      summary: `${updated.orderNumber} iptal edildi`,
+    });
+
     return ok({ order: updated });
   } catch (error) {
     return handleError(error);

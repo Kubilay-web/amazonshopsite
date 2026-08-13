@@ -8,7 +8,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useCart } from "@/components/providers/cart-provider";
 import { useWishlist } from "@/components/providers/wishlist-provider";
 import { useToast } from "@/components/providers/toast-provider";
-import { cn, FREE_SHIPPING_LIMIT, finalPrice, formatPrice } from "@/lib/utils";
+import { useShopConfig } from "@/components/providers/shop-config-provider";
+import { cn, finalPrice, formatPrice } from "@/lib/utils";
 
 type Color = { name: string; hex: string };
 
@@ -32,6 +33,7 @@ export function BuyBox({
   const { add } = useCart();
   const wishlist = useWishlist();
   const { toast } = useToast();
+  const config = useShopConfig();
 
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<string | null>(product.sizes[0] ?? null);
@@ -40,7 +42,7 @@ export function BuyBox({
 
   const outOfStock = product.stock <= 0;
   const unit = finalPrice(product.price, product.discountPercent);
-  const freeShipping = product.shippingFree || unit * qty >= FREE_SHIPPING_LIMIT;
+  const freeShipping = product.shippingFree || unit * qty >= config.freeShippingLimit;
 
   async function addToCart() {
     await add({
@@ -154,7 +156,7 @@ export function BuyBox({
           </p>
         ) : (
           <p className="text-sm text-zinc-600">
-            {formatPrice(FREE_SHIPPING_LIMIT)} ve üzeri siparişlerde kargo bedava
+            {formatPrice(config.freeShippingLimit)} ve üzeri siparişlerde kargo bedava
           </p>
         )}
 

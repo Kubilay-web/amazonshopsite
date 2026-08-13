@@ -8,6 +8,7 @@ import { Rating } from "@/components/ui/rating";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/components/providers/toast-provider";
+import { useShopConfig } from "@/components/providers/shop-config-provider";
 import { cn, formatDate } from "@/lib/utils";
 
 export type ReviewItem = {
@@ -33,6 +34,7 @@ export function Reviews({
   const user = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { reviewsEnabled } = useShopConfig();
 
   const [reviews, setReviews] = useState<ReviewItem[]>(initial);
   const [score, setScore] = useState(5);
@@ -119,7 +121,11 @@ export function Reviews({
             {mine ? "Değerlendirmenizi güncelleyin" : "Bu ürünü değerlendirin"}
           </h3>
 
-          {user ? (
+          {!reviewsEnabled ? (
+            <p className="text-sm text-zinc-600">
+              Değerlendirmeler şu anda kapalı.
+            </p>
+          ) : user ? (
             <form onSubmit={submit} className="space-y-3">
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((n) => (

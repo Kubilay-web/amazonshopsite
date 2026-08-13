@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { bannerSchema } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 import { isValidObjectId } from "@/lib/utils";
 
@@ -9,7 +10,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await params;
     if (!isValidObjectId(id)) return fail("Geçersiz kimlik", 400);
 
@@ -26,6 +27,14 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
         active: data.active,
       },
     });
+    await logAudit({
+      user: admin,
+      action: "UPDATE",
+      entity: "banner",
+      entityId: banner.id,
+      summary: `Banner güncellendi: ${banner.title}`,
+    });
+
     return ok({ banner });
   } catch (error) {
     return handleError(error);
@@ -34,9 +43,18 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await params;
-    await prisma.banner.delete({ where: { id } });
+    const banner = await prisma.banner.delete({ where: { id } });
+
+    await logAudit({
+      user: admin,
+      action: "DELETE",
+      entity: "banner",
+      entityId: id,
+      summary: `Banner silindi: ${banner.title}`,
+    });
+
     return ok({ success: true });
   } catch (error) {
     return handleError(error);

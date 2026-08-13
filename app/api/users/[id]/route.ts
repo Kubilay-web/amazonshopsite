@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 import { isValidObjectId } from "@/lib/utils";
 
@@ -25,6 +26,19 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: { id: true, name: true, email: true, role: true, blocked: true },
     });
 
+    const changes = [
+      body.role ? `rol → ${body.role}` : null,
+      typeof body.blocked === "boolean" ? (body.blocked ? "askıya alındı" : "aktifleştirildi") : null,
+    ].filter(Boolean);
+
+    await logAudit({
+      user: admin,
+      action: "UPDATE",
+      entity: "user",
+      entityId: id,
+      summary: `${user.email}: ${changes.join(", ") || "güncellendi"}`,
+    });
+
     return ok({ user });
   } catch (error) {
     return handleError(error);
@@ -37,6 +51,8 @@ export async function DELETE(_request: NextRequest, { params }: Ctx) {
     const { id } = await params;
     if (id === admin.id) return fail("Kendi hesabınızı silemezsiniz", 400);
 
+    const target = await prisma.user.findUnique({ where: { id }, select: { email: true } });
+
     await prisma.$transaction([
       prisma.review.deleteMany({ where: { userId: id } }),
       prisma.wishlist.deleteMany({ where: { userId: id } }),
@@ -45,6 +61,14 @@ export async function DELETE(_request: NextRequest, { params }: Ctx) {
       prisma.order.deleteMany({ where: { userId: id } }),
       prisma.user.delete({ where: { id } }),
     ]);
+
+    await logAudit({
+      user: admin,
+      action: "DELETE",
+      entity: "user",
+      entityId: id,
+      summary: `Kullanıcı ve tüm verileri silindi: ${target?.email ?? id}`,
+    });
 
     return ok({ success: true });
   } catch (error) {

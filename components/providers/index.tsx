@@ -5,22 +5,27 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { CartProvider } from "@/components/providers/cart-provider";
 import { WishlistProvider } from "@/components/providers/wishlist-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
-import type { AuthUser } from "@/types";
+import { ShopConfigProvider } from "@/components/providers/shop-config-provider";
+import type { AuthUser, ShopConfig } from "@/types";
 
 export function Providers({
   user,
+  config,
   children,
 }: {
   user: AuthUser | null;
+  config: ShopConfig;
   children: ReactNode;
 }) {
   return (
-    <AuthProvider user={user}>
-      <ToastProvider>
-        <WishlistProvider>
-          <CartProvider>{children}</CartProvider>
-        </WishlistProvider>
-      </ToastProvider>
-    </AuthProvider>
+    <ShopConfigProvider config={config}>
+      <AuthProvider user={user}>
+        <ToastProvider>
+          <WishlistProvider>
+            <CartProvider>{children}</CartProvider>
+          </WishlistProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </ShopConfigProvider>
   );
 }

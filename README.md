@@ -65,18 +65,63 @@ Kuponlar: `HOSGELDIN10` (%10, min 25 €) · `YAZ25` (%25, min 100 €) · `SUPE
 
 ### Yönetim paneli (`/admin`)
 
-- **Panel** — ciro, sipariş, ürün, kullanıcı, bekleyen sipariş, kritik stok kartları;
-  son 14 günün ciro grafiği; son siparişler tablosu
-- **Ürünler** — arama, sayfalama, tam CRUD; çoklu görsel yükleme (Cloudinary) veya
-  URL yapıştırma, kapak seçimi ve sıralama, renk/beden/etiket editörü, indirim,
-  stok, yayın & öne çıkarma anahtarları
+Kenar çubuğu beş bölüme ayrılmıştır (Genel · Katalog · Satış · Müşteri & içerik ·
+Sistem) ve bekleyen sipariş / kritik stok / düşük puanlı yorum sayıları rozet olarak
+gösterilir.
+
+**Genel**
+
+- **Panel** — ciro, 30 günlük ciro ve önceki döneme göre değişim, ortalama sepet,
+  sipariş, ürün, kullanıcı, bekleyen sipariş, kritik stok, yorum, kupon, kategori ve
+  banner kartları; tıklanabilir uyarı rozetleri; 14 günlük ciro grafiği; son
+  siparişler, stoğu azalan ürünler ve son yorumlar
+- **Raporlar** — 7/30/90/365 günlük aralık seçimi; ciro, ortalama sepet, ödeme
+  dönüşümü, satılan adet, kargo geliri, kupon indirimi ve yeni kullanıcı metrikleri;
+  günlük ciro grafiği; en çok satan ürünler, en değerli müşteriler, kategori
+  kırılımı, sipariş & ödeme durumu dağılımı, kupon performansı; **CSV dışa aktarım**
+  (sipariş, ürün, kullanıcı, yorum, kupon — Excel uyumlu, UTF-8)
+
+**Katalog**
+
+- **Ürünler** — arama, durum filtreleri (yayında/pasif/öne çıkan/indirimli),
+  sayfalama, tam CRUD; çoklu görsel yükleme (Cloudinary) veya URL yapıştırma, kapak
+  seçimi ve sıralama, renk/beden/etiket editörü; **toplu işlemler**: yayına al/pasife
+  al, öne çıkar/kaldır, toplu indirim, toplu stok atama, kategori taşıma, toplu silme
+- **Stok & fiyat** — satır içi düzenlenebilir stok/fiyat/indirim tablosu, değişiklikler
+  biriktirilip tek istekte kaydedilir; kritik stok, tükenen, indirimli ve pasif
+  filtreleri; toplam stok adedi ve stok değeri
 - **Kategoriler** — kategori ve alt kategori CRUD, görsel, sıralama; ürünü olan
   kategori silinemez
-- **Siparişler** — duruma göre filtre, detay sayfası, sipariş/ödeme durumu ve kargo
-  takip numarası güncelleme (iptalde stok otomatik iade edilir)
-- **Kullanıcılar** — arama, rol değiştirme (USER/ADMIN), hesap askıya alma, silme
+- **Yorumlar** — puana göre filtre, metin araması, ürün ve kullanıcıya köprü, silme
+  (silindiğinde ürün puanı yeniden hesaplanır)
+
+**Satış**
+
+- **Siparişler** — sipariş no/takip no/müşteri araması, duruma göre filtre, detay
+  sayfası, sipariş/ödeme durumu ve kargo takip numarası güncelleme; **toplu durum
+  atama** (iptalde stok otomatik iade edilir); CSV indirme
 - **Kuponlar** — kod, yüzde, minimum tutar, kullanım limiti, tarih aralığı, aktiflik
+
+**Müşteri & içerik**
+
+- **Kullanıcılar** — arama, rol değiştirme (USER/ADMIN), hesap askıya alma, silme,
+  CSV indirme
+- **Müşteri detayı** (`/admin/users/[id]`) — toplam harcama, ödenmiş sipariş,
+  ortalama sepet; sipariş geçmişi, adresler, aktif sepet, favoriler ve yorumlar
 - **Bannerlar** — ana slayt ve orta şerit bannerları, sıra ve yayın durumu
+
+**Sistem**
+
+- **Ayarlar** — mağaza kimliği (site adı, açıklama, destek e-postası/telefonu, adres),
+  duyuru şeridi, ticaret kuralları (bedava kargo limiti, kargo ücreti, KDV oranı,
+  minimum sipariş tutarı, kritik stok eşiği), özellik anahtarları (kapıda ödeme,
+  Stripe, yorumlar, yeni üyelik kaydı), bakım modu ve mesajı, sosyal medya
+  bağlantıları. Ayarlar mağazaya canlı yansır: kargo hesabı ve minimum sipariş
+  kontrolü hem istemcide hem `/api/checkout` içinde bu değerleri kullanır, kapatılan
+  ödeme yöntemi sunucuda da reddedilir, bakım modunda ziyaretçiler bakım ekranını
+  görürken yöneticiler mağazayı gezmeye devam eder.
+- **İşlem kaydı** — panelde yapılan tüm oluşturma/güncelleme/silme/toplu işlemlerin
+  denetim kaydı; işlem ve kayıt türüne göre filtre, 30 günden eski kayıtları temizleme
 
 ---
 
@@ -94,6 +139,10 @@ lib/
   prisma.ts          tekil PrismaClient
   auth.ts / jwt.ts   JWT + httpOnly çerez oturumu
   queries.ts         sunucu bileşenleri için doğrudan DB okumaları
+  admin-queries.ts   pano ve rapor sorguları, müşteri 360° görünümü
+  settings.ts        site ayarları (tek satır, önbellekli, varsayılana düşer)
+  audit.ts           yönetici işlemlerinin denetim kaydı
+  reviews.ts         ürün puanı yeniden hesaplama
   cart.ts            sepet doğrulama (fiyat/stok sunucudan)
   orders.ts          ödeme/stok/iptal iş kuralları
   coupon.ts          kupon doğrulama
@@ -128,6 +177,12 @@ indeks tanımlanmıştır. REST uçları (`/api/*`) aynı iş mantığını dı�
 | `/api/banners` `/api/users` (+`/[id]`) | admin |
 | `/api/upload` | POST/DELETE (Cloudinary, admin) |
 | `/api/webhooks/stripe` (+ `/api/webhook` takma adı) | POST |
+| `/api/admin/settings` | GET · PUT (site ayarları) |
+| `/api/admin/reviews` | GET · DELETE (yorum moderasyonu) |
+| `/api/admin/inventory` | PATCH (toplu stok/fiyat) |
+| `/api/admin/products/bulk` `/api/admin/orders/bulk` | POST (toplu işlem) |
+| `/api/admin/logs` | GET · DELETE (denetim kaydı) |
+| `/api/admin/export?type=…` | GET (CSV) |
 
 ---
 

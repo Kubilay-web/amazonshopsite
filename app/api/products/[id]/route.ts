@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { productSchema } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
 import { fail, handleError, ok } from "@/lib/api";
 import { slugify, isValidObjectId } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: Ctx) {
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await params;
     if (!isValidObjectId(id)) return fail("Geçersiz kimlik", 400);
 
@@ -66,6 +67,14 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       },
     });
 
+    await logAudit({
+      user: admin,
+      action: "UPDATE",
+      entity: "product",
+      entityId: product.id,
+      summary: `Ürün güncellendi: ${product.title}`,
+    });
+
     return ok({ product });
   } catch (error) {
     return handleError(error);
@@ -74,15 +83,28 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await params;
     if (!isValidObjectId(id)) return fail("Geçersiz kimlik", 400);
+
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      select: { title: true },
+    });
 
     await prisma.$transaction([
       prisma.review.deleteMany({ where: { productId: id } }),
       prisma.wishlist.deleteMany({ where: { productId: id } }),
       prisma.product.delete({ where: { id } }),
     ]);
+
+    await logAudit({
+      user: admin,
+      action: "DELETE",
+      entity: "product",
+      entityId: id,
+      summary: `Ürün silindi: ${existing?.title ?? id}`,
+    });
 
     return ok({ success: true });
   } catch (error) {

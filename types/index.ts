@@ -39,3 +39,19 @@ export type ApiError = {
   message: string;
   fields?: Record<string, string>;
 };
+
+/**
+ * Yönetim panelindeki ayarlardan türeyen, istemci tarafında da gereken
+ * ticaret yapılandırması. Sunucu bu değerleri kök düzenden aşağı aktarır.
+ */
+export type ShopConfig = {
+  siteName: string;
+  freeShippingLimit: number;
+  shippingCost: number;
+  taxRate: number;
+  minOrderAmount: number;
+  codEnabled: boolean;
+  stripeEnabled: boolean;
+  reviewsEnabled: boolean;
+  registrationOpen: boolean;
+};

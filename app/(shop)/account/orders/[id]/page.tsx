@@ -168,6 +168,12 @@ export default async function OrderDetailPage({
                 <dd>−{formatPrice(order.discount)}</dd>
               </div>
             )}
+            {order.taxPrice > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-zinc-600">KDV</dt>
+                <dd>{formatPrice(order.taxPrice)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-amz-border pt-1.5 text-base font-bold text-amz-price">
               <dt>Toplam</dt>
               <dd>{formatPrice(order.totalPrice)}</dd>

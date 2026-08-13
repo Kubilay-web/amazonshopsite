@@ -6,11 +6,13 @@ import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
+import { useShopConfig } from "@/components/providers/shop-config-provider";
 
 export function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { toast } = useToast();
+  const { registrationOpen } = useShopConfig();
   const redirectTo = params.get("redirect") || "/";
 
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
@@ -48,6 +50,21 @@ export function RegisterForm() {
       setError(err instanceof Error ? err.message : "Bir hata oluştu");
       setLoading(false);
     }
+  }
+
+  if (!registrationOpen) {
+    return (
+      <div className="rounded-lg border border-amz-border bg-white p-5">
+        <h1 className="mb-2 text-2xl font-normal text-zinc-900">Kayıt kapalı</h1>
+        <p className="text-sm text-zinc-600">
+          Yeni üyelik kaydı şu anda kapalı. Mevcut hesabınızla{" "}
+          <Link href="/login" className="text-amz-link hover:text-amz-link-hover">
+            giriş yapabilirsiniz
+          </Link>
+          .
+        </p>
+      </div>
+    );
   }
 
   return (

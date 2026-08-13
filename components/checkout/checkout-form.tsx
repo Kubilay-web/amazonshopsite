@@ -8,7 +8,8 @@ import { SafeImage } from "@/components/ui/safe-image";
 import { Spinner } from "@/components/ui/spinner";
 import { useCart } from "@/components/providers/cart-provider";
 import { useToast } from "@/components/providers/toast-provider";
-import { cn, calcShipping, finalPrice, formatPrice, round2 } from "@/lib/utils";
+import { useShopConfig } from "@/components/providers/shop-config-provider";
+import { cn, calcShipping, calcTax, finalPrice, formatPrice, round2 } from "@/lib/utils";
 
 type Address = {
   id: string;
@@ -44,6 +45,11 @@ export function CheckoutForm({
   const router = useRouter();
   const { items, subtotal, ready, clear } = useCart();
   const { toast } = useToast();
+  const config = useShopConfig();
+
+  // Stripe hem .env'de yapılandırılmış hem de panelden açık olmalı
+  const stripeAvailable = stripeEnabled && config.stripeEnabled;
+  const codAvailable = config.codEnabled;
 
   const [addressId, setAddressId] = useState<string | null>(
     addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? null,
@@ -51,7 +57,7 @@ export function CheckoutForm({
   const [useNew, setUseNew] = useState(addresses.length === 0);
   const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "cod">(
-    stripeEnabled ? "stripe" : "cod",
+    stripeAvailable ? "stripe" : "cod",
   );
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
@@ -59,8 +65,11 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
 
   const discount = coupon?.discount ?? 0;
-  const shipping = calcShipping(subtotal);
-  const total = round2(Math.max(0, subtotal - discount) + shipping);
+  const shipping = calcShipping(subtotal, config);
+  const taxable = round2(Math.max(0, subtotal - discount));
+  const tax = calcTax(taxable, config.taxRate);
+  const total = round2(taxable + shipping + tax);
+  const belowMinimum = config.minOrderAmount > 0 && subtotal < config.minOrderAmount;
 
   async function applyCoupon() {
     if (!couponInput.trim()) return;
@@ -84,6 +93,10 @@ export function CheckoutForm({
     event.preventDefault();
     if (items.length === 0) {
       toast("Sepetiniz boş", "error");
+      return;
+    }
+    if (belowMinimum) {
+      toast(`Minimum sipariş tutarı ${formatPrice(config.minOrderAmount)}`, "error");
       return;
     }
     setSubmitting(true);
@@ -286,13 +299,13 @@ export function CheckoutForm({
                 paymentMethod === "stripe"
                   ? "border-amz-orange bg-amz-orange/5"
                   : "border-amz-border hover:bg-amz-light",
-                !stripeEnabled && "cursor-not-allowed opacity-50",
+                !stripeAvailable && "cursor-not-allowed opacity-50",
               )}
             >
               <input
                 type="radio"
                 name="payment"
-                disabled={!stripeEnabled}
+                disabled={!stripeAvailable}
                 checked={paymentMethod === "stripe"}
                 onChange={() => setPaymentMethod("stripe")}
                 className="mt-1 size-4 accent-amz-orange"
@@ -302,9 +315,11 @@ export function CheckoutForm({
                   <CreditCard className="size-4" /> Kredi / Banka kartı (Stripe)
                 </p>
                 <p className="text-zinc-600">
-                  {stripeEnabled
+                  {stripeAvailable
                     ? "Güvenli Stripe ödeme sayfasına yönlendirilirsiniz."
-                    : "Stripe anahtarları .env dosyasında tanımlı değil."}
+                    : !config.stripeEnabled
+                      ? "Kart ile ödeme şu anda kapalı."
+                      : "Stripe anahtarları .env dosyasında tanımlı değil."}
                 </p>
               </div>
             </label>
@@ -315,11 +330,13 @@ export function CheckoutForm({
                 paymentMethod === "cod"
                   ? "border-amz-orange bg-amz-orange/5"
                   : "border-amz-border hover:bg-amz-light",
+                !codAvailable && "cursor-not-allowed opacity-50",
               )}
             >
               <input
                 type="radio"
                 name="payment"
+                disabled={!codAvailable}
                 checked={paymentMethod === "cod"}
                 onChange={() => setPaymentMethod("cod")}
                 className="mt-1 size-4 accent-amz-orange"
@@ -328,9 +345,19 @@ export function CheckoutForm({
                 <p className="flex items-center gap-2 font-semibold text-zinc-900">
                   <Banknote className="size-4" /> Kapıda ödeme
                 </p>
-                <p className="text-zinc-600">Siparişinizi teslim alırken ödeyin.</p>
+                <p className="text-zinc-600">
+                  {codAvailable
+                    ? "Siparişinizi teslim alırken ödeyin."
+                    : "Kapıda ödeme şu anda kapalı."}
+                </p>
               </div>
             </label>
+
+            {!stripeAvailable && !codAvailable && (
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                Şu anda hiçbir ödeme yöntemi açık değil. Lütfen daha sonra tekrar deneyin.
+              </p>
+            )}
           </div>
 
           <textarea
@@ -378,7 +405,17 @@ export function CheckoutForm({
       {/* Özet */}
       <aside className="w-full shrink-0 lg:sticky lg:top-32 lg:w-80">
         <div className="space-y-3 rounded-lg bg-white p-4">
-          <button type="submit" disabled={submitting} className="btn-amz w-full">
+          {belowMinimum && (
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Minimum sipariş tutarı {formatPrice(config.minOrderAmount)}.
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting || belowMinimum || (!stripeAvailable && !codAvailable)}
+            className="btn-amz w-full"
+          >
             {submitting && <Spinner />}
             {paymentMethod === "stripe" ? "Ödemeye geç" : "Siparişi onayla"}
           </button>
@@ -414,6 +451,12 @@ export function CheckoutForm({
               <div className="flex justify-between text-amz-success">
                 <dt>İndirim</dt>
                 <dd>−{formatPrice(discount)}</dd>
+              </div>
+            )}
+            {tax > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-zinc-600">KDV (%{config.taxRate})</dt>
+                <dd>{formatPrice(tax)}</dd>
               </div>
             )}
             <div className="flex justify-between border-t border-amz-border pt-2 text-lg font-bold text-amz-price">
