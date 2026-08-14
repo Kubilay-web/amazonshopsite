@@ -4,6 +4,7 @@ import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, toShopConfig } from "@/lib/settings";
 import { Providers } from "@/components/providers";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers user={user} config={toShopConfig(settings)}>
           {children}
         </Providers>
+        <SiteAnalytics measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
       </body>
     </html>
   );

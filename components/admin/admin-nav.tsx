@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  Activity,
   BarChart3,
   Boxes,
   Image as ImageIcon,
@@ -37,6 +38,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
     links: [
       { href: "/admin", label: "Panel", icon: LayoutDashboard, exact: true },
       { href: "/admin/reports", label: "Raporlar", icon: BarChart3 },
+      { href: "/admin/analytics", label: "Ziyaretçiler", icon: Activity },
     ],
   },
   {

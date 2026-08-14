@@ -354,3 +354,48 @@ model AuditLog {
   @@index([entity])
   @@map("auditlogs")
 }
+
+/// Mağazadaki her sayfa görüntülemesinin anonim kaydı.
+/// Kişisel veri tutulmaz: IP saklanmaz, `visitorId` günlük değişen tek yönlü
+/// bir özettir (IP + tarayıcı + tarih + gizli anahtar). Ertesi gün aynı
+/// ziyaretçi farklı bir kimlik alır, dolayısıyla kalıcı takip yapılmaz.
+model PageView {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Nereye
+  path  String
+  title String @default("")
+
+  // Kim (anonim)
+  visitorId String
+  sessionId String  @default("")
+  userId    String? @db.ObjectId
+
+  // Nereden
+  referrer String @default("")
+  source   String @default("direct") // google, instagram, example.com, direct …
+  medium   String @default("none") // organic | social | referral | cpc | none
+  campaign String @default("")
+
+  // Nerede
+  country String @default("") // ISO-2 (TR, DE …)
+  city    String @default("")
+
+  // Ne ile
+  device   String @default("desktop") // desktop | mobile | tablet
+  browser  String @default("")
+  os       String @default("")
+  language String @default("")
+
+  // Ne zaman — `date` ve `hour` Europe/Istanbul saatine göre önceden
+  // hesaplanır; böylece raporlar saat dilimi çevirisi yapmadan gruplanabilir.
+  date      String // YYYY-MM-DD
+  hour      Int    @default(0) // 0-23
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([createdAt])
+  @@index([visitorId])
+  @@index([path])
+  @@map("pageviews")
+}

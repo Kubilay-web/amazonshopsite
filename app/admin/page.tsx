@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   AlertTriangle,
   BadgeEuro,
   Boxes,
@@ -16,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { getAdminOverview } from "@/lib/admin-queries";
+import { getTodayTraffic } from "@/lib/analytics-queries";
 import { getSettings } from "@/lib/settings";
 import { StatCard } from "@/components/admin/stat-card";
 import { RevenueChart } from "@/components/admin/revenue-chart";
@@ -33,7 +35,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const settings = await getSettings();
-  const stats = await getAdminOverview(settings.lowStockThreshold);
+  const [stats, today] = await Promise.all([
+    getAdminOverview(settings.lowStockThreshold),
+    getTodayTraffic(),
+  ]);
 
   const alerts = [
     stats.pendingOrders > 0
@@ -194,6 +199,14 @@ export default async function AdminDashboard() {
           icon={UserPlus}
           tone="zinc"
           href="/admin/banners"
+        />
+        <StatCard
+          label="Bugünkü ziyaretçi"
+          value={String(today.visitors)}
+          hint={`${today.views} sayfa görüntüleme`}
+          icon={Activity}
+          tone="indigo"
+          href="/admin/analytics"
         />
       </div>
 
