@@ -1,12 +1,38 @@
 import type { TrafficDay } from "@/lib/analytics-queries";
 
 /**
+ * Eksende gösterilecek etiket indekslerini seçer (ilk ve son her zaman dahil).
+ * Her sütuna etiket basmak dar ekranda satırı taşırdığı için seyrekleştirilir.
+ */
+function tickIndexes(count: number, max: number) {
+  if (count <= max) return Array.from({ length: count }, (_, i) => i);
+  const step = (count - 1) / (max - 1);
+  return Array.from({ length: max }, (_, i) => Math.round(i * step));
+}
+
+/** Etiket satırı: uçlar kenarlara yaslanır, aradakiler eşit dağılır. */
+function AxisLabels({ labels }: { labels: string[] }) {
+  return (
+    <div className="mt-1 flex justify-between gap-2 text-[10px] text-zinc-500">
+      {labels.map((label, index) => (
+        <span key={`${label}-${index}`} className="whitespace-nowrap">
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Günlük ziyaretçi/görüntüleme sütunları. Her gün için iki ince çubuk çizilir;
  * `RevenueChart` gibi bağımlılıksızdır ve tamamen sunucuda render edilir.
  */
 export function TrafficChart({ days, height = 220 }: { days: TrafficDay[]; height?: number }) {
   const max = Math.max(...days.map((day) => Math.max(day.views, day.visitors)), 1);
-  const compact = days.length > 40;
+  // Dar ekranda 5 etiket sığar; gün sayısı azsa hepsi gösterilir.
+  const labels = tickIndexes(days.length, 5).map((index) =>
+    days.length > 7 ? days[index].date.slice(5) : days[index].date.slice(8),
+  );
 
   return (
     <div>
@@ -41,13 +67,7 @@ export function TrafficChart({ days, height = 220 }: { days: TrafficDay[]; heigh
         ))}
       </div>
 
-      <div className="mt-1 flex gap-px text-[10px] text-zinc-500 sm:gap-1">
-        {days.map((day, index) => (
-          <span key={day.date} className="flex-1 text-center">
-            {compact ? (index % 7 === 0 ? day.date.slice(5) : "") : day.date.slice(8)}
-          </span>
-        ))}
-      </div>
+      <AxisLabels labels={labels} />
     </div>
   );
 }
@@ -79,13 +99,11 @@ export function HourChart({
         ))}
       </div>
 
-      <div className="mt-1 flex gap-0.5 text-[10px] text-zinc-500 sm:gap-1">
-        {hours.map((slot) => (
-          <span key={slot.hour} className="flex-1 text-center">
-            {slot.hour % 3 === 0 ? String(slot.hour).padStart(2, "0") : ""}
-          </span>
-        ))}
-      </div>
+      <AxisLabels
+        labels={tickIndexes(hours.length, 6).map(
+          (index) => `${String(hours[index].hour).padStart(2, "0")}:00`,
+        )}
+      />
     </div>
   );
 }

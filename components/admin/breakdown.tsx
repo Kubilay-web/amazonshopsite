@@ -23,8 +23,10 @@ export function Breakdown({
   const max = Math.max(...rows.map((row) => row.count), 1);
   const base = total > 0 ? total : 1;
 
+  // min-w-0: ızgara hücresinin varsayılan `min-width: auto` tabanı, içerideki
+  // uzun sayfa yollarını taban alır ve sütunu dar ekranda viewport'tan taşırır.
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white">
+    <section className="min-w-0 rounded-lg border border-zinc-200 bg-white">
       <h2 className="border-b border-zinc-200 p-4 text-lg font-bold text-zinc-900">{title}</h2>
       {rows.length === 0 ? (
         <p className="p-5 text-sm text-zinc-500">{empty}</p>
@@ -33,10 +35,12 @@ export function Breakdown({
           {rows.map((row) => (
             <li key={row.key}>
               <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate text-zinc-800">
-                  {renderLabel ? renderLabel(row) : row.label || "Bilinmiyor"}
-                </span>
-                <span className="shrink-0 font-semibold text-zinc-900">
+                {/* min-w-0 + truncate olmadan uzun ülke adları / ürün yolları
+                    hücreyi büyütür ve kart dar ekranda taşar. */}
+                <div className="min-w-0 flex-1 truncate text-zinc-800">
+                  {renderLabel ? renderLabel(row) : (row.label || "Bilinmiyor")}
+                </div>
+                <span className="shrink-0 whitespace-nowrap font-semibold text-zinc-900">
                   {row.count}
                   <span className="ml-2 text-xs font-normal text-zinc-500">
                     %{Math.round((row.count / base) * 100)}

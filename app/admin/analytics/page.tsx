@@ -45,7 +45,7 @@ export default async function AdminAnalyticsPage({
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {RANGES.map((key) => (
             <Link
               key={key}
@@ -132,7 +132,7 @@ export default async function AdminAnalyticsPage({
         <HourChart hours={report.hours} height={140} />
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Breakdown
           title="Ülkeler"
           rows={report.countries}
@@ -140,9 +140,11 @@ export default async function AdminAnalyticsPage({
           tone="bg-emerald-400"
           empty="Ülke bilgisi yok. Yerelde çalışırken barındırıcı coğrafya başlığı göndermez; Vercel'de otomatik dolar."
           renderLabel={(row) => (
-            <span className="flex items-center gap-2">
-              <span aria-hidden>{countryFlag(row.key)}</span>
-              {countryName(row.key)}
+            <span className="flex min-w-0 items-center gap-2">
+              <span aria-hidden className="shrink-0">
+                {countryFlag(row.key)}
+              </span>
+              <span className="truncate">{countryName(row.key)}</span>
             </span>
           )}
         />
